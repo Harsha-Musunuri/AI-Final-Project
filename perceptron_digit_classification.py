@@ -2,6 +2,19 @@ import sys
 import argparse
 import numpy as np
 from PIL import Image
+np.set_printoptions(threshold=sys.maxsize)
+
+def get_pixels_from_string(string):
+	individual_pixels =list(map(int, string)) 
+	individual_pixels = [elt * 255 for elt in individual_pixels]
+	return individual_pixels
+
+def resize_and_append_image(curr_image, image_array):
+	im = Image.fromarray((curr_image).astype(np.uint8))
+	resized_img = im.resize((32, 32), Image.ANTIALIAS)
+	curr_image = np.array(resized_img)
+	image_array.append(curr_image)
+	return image_array
 
 def readImages(filename, number_of_data_points):
 	data_file = open(filename, "r")
@@ -18,13 +31,18 @@ def readImages(filename, number_of_data_points):
 		if(curr_line != "" and previous_line == ""):
 			counter += 1
 			if(counter != 1):
-				image_array.append(curr_image)
-			curr_image = np.array(list(map(int, individual_pixels)),ndmin=2)
+				image_array = resize_and_append_image(curr_image, image_array)
+
+			individual_pixels = get_pixels_from_string(individual_pixels)
+			curr_image = np.array(individual_pixels,ndmin=2)
+
 		elif(curr_line != "" and previous_line != ""):
-			arr = np.array(list(map(int, individual_pixels)),ndmin=2)
+			individual_pixels = get_pixels_from_string(individual_pixels)
+			arr = np.array(individual_pixels,ndmin=2)
 			curr_image = np.append(curr_image, arr, axis=0)
+
 		elif(counter == number_of_data_points and curr_line == "" and previous_line == ""):
-			image_array.append(curr_image)
+			image_array = resize_and_append_image(curr_image, image_array)
 			counter += 1
 
 		previous_line = line.strip()

@@ -1,55 +1,11 @@
+import util
 import sys
 import argparse
 import numpy as np
-from PIL import Image
 import time
 import copy
 import math
 np.set_printoptions(threshold=sys.maxsize)
-
-def resize_image(curr_image):
-	im = Image.fromarray((curr_image).astype(np.uint8))
-	resized_img = im.resize((32, 32), Image.ANTIALIAS)
-	curr_image = np.array(resized_img)
-	return curr_image
-
-def readImages(filename, number_of_data_points):
-	data_file = open(filename, "r")
-	line = data_file.readline()
-	line_num = 0
-	image_array = []
-	single_image_array = []
-
-	while line:
-		line = line.replace(" ","0").replace("#","1").replace("+","1").strip()
-		line = list(map(int, line)) 
-
-		if(1 in line):
-			single_image_array.append(line)
-
-		single_image_array.append(line)
-
-		line_num += 1
-		if(line_num % 28 == 0):
-			arr = np.array(single_image_array)
-			resized_img = resize_image(arr)
-			image_array.append(resized_img)
-			single_image_array = []
-		line = data_file.readline()
-
-	data_file.close()
-	return image_array
-
-def readLabels(filename):
-	label_file = open(filename, "r")
-	line = label_file.readline()
-	labels = []
-	while line:
-		label = int(line.strip())
-		labels.append(label)
-		line = label_file.readline()
-	label_file.close()
-	return labels
 
 def calc_accuracy(feature_matrix, prior_prob, images, labels, num_classes):
 	true_positive_count = 0
@@ -119,15 +75,15 @@ def main():
 	parser.add_argument('--test_label_path', required=True, help='Path to Testing data')
 	args = parser.parse_args()
 
-	training_labels = readLabels(args.training_label_path)
-	training_images = readImages(args.training_data_path, len(training_labels))
+	training_labels = util.readLabels(args.training_label_path)
+	training_images = util.readImages(args.training_data_path, len(training_labels))
 	num_classes = len(set(training_labels))
 
-	validation_labels = readLabels(args.validation_label_path)
-	validation_images = readImages(args.validation_data_path, len(validation_labels))
+	validation_labels = util.readLabels(args.validation_label_path)
+	validation_images = util.readImages(args.validation_data_path, len(validation_labels))
 
-	testing_labels = readLabels(args.test_label_path)
-	testing_images = readImages(args.test_data_path, len(testing_labels))
+	testing_labels = util.readLabels(args.test_label_path)
+	testing_images = util.readImages(args.test_data_path, len(testing_labels))
 
 	feature_matrix, prior_prob = core_naive_bayes(training_images, training_labels, validation_images, validation_labels, num_classes)
 	test_accuracy = calc_accuracy(feature_matrix, prior_prob, testing_images, testing_labels, num_classes)

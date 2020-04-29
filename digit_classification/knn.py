@@ -18,17 +18,17 @@ def top_euclidean_distance(training_images, training_labels, test_sample, num_ne
 			euclidean_dist[curr_dist].append(training_labels[index])
 		else:
 			euclidean_dist[curr_dist] = [training_labels[index]]
-	top100 = []
+	top_k = []
 	counter = 0
 	for key in sorted(euclidean_dist):
 		for element in euclidean_dist[key]:
-			top100.append(element)
+			top_k.append(element)
 			counter += 1
 			if(counter == num_neighbours):
 				break
 		if(counter == num_neighbours):
 			break
-	return most_frequent(top100)
+	return most_frequent(top_k)
 
 def calc_accuracy(training_images, training_labels, testing_images, testing_labels, num_classes, num_neighbours):
 	true_positive_count = 0

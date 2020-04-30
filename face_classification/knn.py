@@ -11,12 +11,14 @@ def resize_image(curr_image, resize_width, resize_height):
 	curr_image = np.array(resized_img)
 	return curr_image
 
-def readImages(filename, number_of_data_points, resize_width, resize_height):
+def readImages(filename, number_of_data_points, resize_width, resize_height, indices):
 	data_file = open(filename, "r")
 	line = data_file.readline()
 	line_num = 0
 	image_array = []
 	single_image_array = []
+	image_num = 0
+	indices_length = len(indices)
 
 	while line:
 		line = line.replace(" ","0").replace("#","1").replace("+","1").strip()
@@ -29,16 +31,18 @@ def readImages(filename, number_of_data_points, resize_width, resize_height):
 
 		line_num += 1
 		if(line_num % 70 == 0):
-			arr = np.array(single_image_array)
-			resized_img = resize_image(arr, resize_width, resize_height)
-			image_array.append(resized_img)
+			if((indices_length > 0 and image_num in indices) or indices_length == 0):
+				arr = np.array(single_image_array)
+				resized_img = resize_image(arr, resize_width, resize_height)
+				image_array.append(resized_img)
+			image_num += 1
 			single_image_array = []
 		line = data_file.readline()
 
 	data_file.close()
 	return image_array
 
-def readLabels(filename):
+def readLabels(filename, percentage):
 	label_file = open(filename, "r")
 	line = label_file.readline()
 	labels = []
@@ -47,7 +51,31 @@ def readLabels(filename):
 		labels.append(label)
 		line = label_file.readline()
 	label_file.close()
-	return labels
+
+	indices = []
+	if(percentage != 100):
+		prior_count = [0]*len(list(set(labels)))
+		for index in range(0,len(labels)):
+			prior_count[labels[index]] += 1
+
+		running_count = [0]*len(list(set(labels)))
+
+		label_file = open(filename, "r")
+		line = label_file.readline()
+		trim_labels = []
+		line_num = 0
+		while line:
+			label = int(line.strip())
+			if(running_count[label] <= (prior_count[label]*percentage/float(100))):
+				running_count[label] += 1
+				trim_labels.append(label)
+				indices.append(line_num)
+			line_num += 1
+			line = label_file.readline()
+		label_file.close()
+		return trim_labels, indices
+
+	return labels, indices
 
 def most_frequent(list): 
 	occurence_count = Counter(list) 
@@ -98,22 +126,26 @@ def main():
 	parser.add_argument('--test_label_path', required=True, help='Path to Testing data')
 	parser.add_argument('--num_neighbours_start_limit', required=True, help='Number of epochs')
 	parser.add_argument('--num_neighbours_end_limit', required=True, help='Number of epochs')
+	parser.add_argument('--training_data_percentage', required=True, help='Percentage of Training Data')
 	args = parser.parse_args()
 
+	training_data_percentage = int(args.training_data_percentage)
 	num_neighbours_start_limit = int(args.num_neighbours_start_limit)
 	num_neighbours_end_limit = int(args.num_neighbours_end_limit)
 	resize_width = int(args.image_resize_width)
 	resize_height = int(args.image_resize_height)
 	best_val_acc = -1
 	best_k = num_neighbours_start_limit
-	training_labels = readLabels(args.training_label_path)
-	training_images = readImages(args.training_data_path, len(training_labels), resize_width, resize_height)
-	num_classes = len(set(training_labels))
-	validation_labels = readLabels(args.validation_label_path)
-	validation_images = readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height)
 
-	testing_labels = readLabels(args.test_label_path)
-	testing_images = readImages(args.test_data_path, len(testing_labels), resize_width, resize_height)
+	training_labels, indices = readLabels(args.training_label_path, training_data_percentage)
+	training_images = readImages(args.training_data_path, len(training_labels), resize_width, resize_height, indices)
+	num_classes = len(set(training_labels))
+
+	validation_labels, indices = readLabels(args.validation_label_path, 100)
+	validation_images = readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height, indices)
+
+	testing_labels, indices = readLabels(args.test_label_path, 100)
+	testing_images = readImages(args.test_data_path, len(testing_labels), resize_width, resize_height, indices)
 
 	for num_neighbours in range(num_neighbours_start_limit, num_neighbours_end_limit+1):
 		if(num_neighbours_start_limit != num_neighbours_end_limit):

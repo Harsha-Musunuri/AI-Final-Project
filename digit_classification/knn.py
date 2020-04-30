@@ -54,22 +54,26 @@ def main():
 	parser.add_argument('--test_label_path', required=True, help='Path to Testing data')
 	parser.add_argument('--num_neighbours_start_limit', required=True, help='Number of epochs')
 	parser.add_argument('--num_neighbours_end_limit', required=True, help='Number of epochs')
+	parser.add_argument('--training_data_percentage', required=True, help='Percentage of Training Data')
 	args = parser.parse_args()
 
+	training_data_percentage = int(args.training_data_percentage)
 	num_neighbours_start_limit = int(args.num_neighbours_start_limit)
 	num_neighbours_end_limit = int(args.num_neighbours_end_limit)
 	resize_width = int(args.image_resize_width)
 	resize_height = int(args.image_resize_height)
 	best_val_acc = -1
 	best_k = num_neighbours_start_limit
-	training_labels = util.readLabels(args.training_label_path)
-	training_images = util.readImages(args.training_data_path, len(training_labels), resize_width, resize_height)
-	num_classes = len(set(training_labels))
-	validation_labels = util.readLabels(args.validation_label_path)
-	validation_images = util.readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height)
 
-	testing_labels = util.readLabels(args.test_label_path)
-	testing_images = util.readImages(args.test_data_path, len(testing_labels), resize_width, resize_height)
+	training_labels, indices = util.readLabels(args.training_label_path, training_data_percentage)
+	training_images = util.readImages(args.training_data_path, len(training_labels), resize_width, resize_height, indices)
+	num_classes = len(set(training_labels))
+
+	validation_labels, indices = util.readLabels(args.validation_label_path, 100)
+	validation_images = util.readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height, indices)
+
+	testing_labels, indices = util.readLabels(args.test_label_path, 100)
+	testing_images = util.readImages(args.test_data_path, len(testing_labels), resize_width, resize_height, indices)
 
 	for num_neighbours in range(num_neighbours_start_limit, num_neighbours_end_limit+1):
 		if(num_neighbours_start_limit != num_neighbours_end_limit):

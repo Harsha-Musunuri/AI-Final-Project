@@ -75,22 +75,24 @@ def main():
 	parser.add_argument('--test_data_path', required=True, help='Path to Testing data')
 	parser.add_argument('--test_label_path', required=True, help='Path to Testing data')
 	parser.add_argument('--num_epochs', required=True, help='Number of epochs')
+	parser.add_argument('--training_data_percentage', required=True, help='Percentage of Training Data')
 	args = parser.parse_args()
 
 	num_epochs = int(args.num_epochs)
+	training_data_percentage = int(args.training_data_percentage)
 
 	resize_width = int(args.image_resize_width)
 	resize_height = int(args.image_resize_height)
 
-	training_labels = util.readLabels(args.training_label_path)
-	training_images = util.readImages(args.training_data_path, len(training_labels), resize_width, resize_height)
+	training_labels, indices = util.readLabels(args.training_label_path, training_data_percentage)
+	training_images = util.readImages(args.training_data_path, len(training_labels), resize_width, resize_height, indices)
 	num_classes = len(set(training_labels))
 
-	validation_labels = util.readLabels(args.validation_label_path)
-	validation_images = util.readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height)
+	validation_labels, indices = util.readLabels(args.validation_label_path, 100)
+	validation_images = util.readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height, indices)
 
-	testing_labels = util.readLabels(args.test_label_path)
-	testing_images = util.readImages(args.test_data_path, len(testing_labels), resize_width, resize_height)
+	testing_labels, indices = util.readLabels(args.test_label_path, 100)
+	testing_images = util.readImages(args.test_data_path, len(testing_labels), resize_width, resize_height, indices)
 
 	weights = train_perceptron(training_images, training_labels, validation_images, validation_labels, num_classes, num_epochs)
 	test_accuracy = calc_accuracy(weights, testing_images, testing_labels, num_classes)

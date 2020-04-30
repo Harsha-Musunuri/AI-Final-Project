@@ -1,13 +1,13 @@
 import numpy as np
 from PIL import Image
 
-def resize_image(curr_image):
+def resize_image(curr_image, resize_width, resize_height):
 	im = Image.fromarray((curr_image).astype(np.uint8))
-	resized_img = im.resize((32, 32), Image.ANTIALIAS)
+	resized_img = im.resize((resize_width, resize_height), Image.ANTIALIAS)
 	curr_image = np.array(resized_img)
 	return curr_image
 
-def readImages(filename, number_of_data_points):
+def readImages(filename, number_of_data_points, resize_width, resize_height):
 	data_file = open(filename, "r")
 	line = data_file.readline()
 	line_num = 0
@@ -26,7 +26,7 @@ def readImages(filename, number_of_data_points):
 		line_num += 1
 		if(line_num % 28 == 0):
 			arr = np.array(single_image_array)
-			resized_img = resize_image(arr)
+			resized_img = resize_image(arr, resize_width, resize_height)
 			image_array.append(resized_img)
 			single_image_array = []
 		line = data_file.readline()

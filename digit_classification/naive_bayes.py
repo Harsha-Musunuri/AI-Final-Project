@@ -67,6 +67,8 @@ def core_naive_bayes(training_images, training_labels, validation_images, valida
 
 def main():
 	parser = argparse.ArgumentParser(description='Digit Classification using Perceptron')
+	parser.add_argument('--image_resize_width', required=True, help='Resize Width')
+	parser.add_argument('--image_resize_height', required=True, help='Resize Height')
 	parser.add_argument('--training_data_path', required=True, help='Path to training data')
 	parser.add_argument('--training_label_path', required=True, help='Path to training data')
 	parser.add_argument('--validation_data_path', required=True, help='Path to validation data')
@@ -75,15 +77,18 @@ def main():
 	parser.add_argument('--test_label_path', required=True, help='Path to Testing data')
 	args = parser.parse_args()
 
+	resize_width = int(args.image_resize_width)
+	resize_height = int(args.image_resize_height)
+
 	training_labels = util.readLabels(args.training_label_path)
-	training_images = util.readImages(args.training_data_path, len(training_labels))
+	training_images = util.readImages(args.training_data_path, len(training_labels), resize_width, resize_height)
 	num_classes = len(set(training_labels))
 
 	validation_labels = util.readLabels(args.validation_label_path)
-	validation_images = util.readImages(args.validation_data_path, len(validation_labels))
+	validation_images = util.readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height)
 
 	testing_labels = util.readLabels(args.test_label_path)
-	testing_images = util.readImages(args.test_data_path, len(testing_labels))
+	testing_images = util.readImages(args.test_data_path, len(testing_labels), resize_width, resize_height)
 
 	feature_matrix, prior_prob = core_naive_bayes(training_images, training_labels, validation_images, validation_labels, num_classes)
 	test_accuracy = calc_accuracy(feature_matrix, prior_prob, testing_images, testing_labels, num_classes)

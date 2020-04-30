@@ -1,9 +1,53 @@
-import util
+import numpy as np
+from PIL import Image
 import sys
 import argparse
-import numpy as np
 from collections import Counter 
 np.set_printoptions(threshold=sys.maxsize)
+
+def resize_image(curr_image, resize_width, resize_height):
+	im = Image.fromarray((curr_image).astype(np.uint8))
+	resized_img = im.resize((resize_width, resize_width), Image.ANTIALIAS)
+	curr_image = np.array(resized_img)
+	return curr_image
+
+def readImages(filename, number_of_data_points, resize_width, resize_height):
+	data_file = open(filename, "r")
+	line = data_file.readline()
+	line_num = 0
+	image_array = []
+	single_image_array = []
+
+	while line:
+		line = line.replace(" ","0").replace("#","1").replace("+","1").strip()
+		line = list(map(int, line)) 
+
+		if(1 in line):
+			single_image_array.append(line)
+
+		single_image_array.append(line)
+
+		line_num += 1
+		if(line_num % 70 == 0):
+			arr = np.array(single_image_array)
+			resized_img = resize_image(arr, resize_width, resize_height)
+			image_array.append(resized_img)
+			single_image_array = []
+		line = data_file.readline()
+
+	data_file.close()
+	return image_array
+
+def readLabels(filename):
+	label_file = open(filename, "r")
+	line = label_file.readline()
+	labels = []
+	while line:
+		label = int(line.strip())
+		labels.append(label)
+		line = label_file.readline()
+	label_file.close()
+	return labels
 
 def most_frequent(list): 
 	occurence_count = Counter(list) 
@@ -62,14 +106,14 @@ def main():
 	resize_height = int(args.image_resize_height)
 	best_val_acc = -1
 	best_k = num_neighbours_start_limit
-	training_labels = util.readLabels(args.training_label_path)
-	training_images = util.readImages(args.training_data_path, len(training_labels), resize_width, resize_height)
+	training_labels = readLabels(args.training_label_path)
+	training_images = readImages(args.training_data_path, len(training_labels), resize_width, resize_height)
 	num_classes = len(set(training_labels))
-	validation_labels = util.readLabels(args.validation_label_path)
-	validation_images = util.readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height)
+	validation_labels = readLabels(args.validation_label_path)
+	validation_images = readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height)
 
-	testing_labels = util.readLabels(args.test_label_path)
-	testing_images = util.readImages(args.test_data_path, len(testing_labels), resize_width, resize_height)
+	testing_labels = readLabels(args.test_label_path)
+	testing_images = readImages(args.test_data_path, len(testing_labels), resize_width, resize_height)
 
 	for num_neighbours in range(num_neighbours_start_limit, num_neighbours_end_limit+1):
 		if(num_neighbours_start_limit != num_neighbours_end_limit):

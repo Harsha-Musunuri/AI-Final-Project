@@ -185,25 +185,6 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
             if predictions[i] == validationLabels[i]:
                 acc += 1
 
-        # Checking if any of the k values produced the best accuracy and if it did we store it
-    #     if acc > bestAcc:
-    #         bestK = k
-    #         bestAcc = acc
-
-    # #Calculating the probabilities using the best k to get the most accurate results
-    # tProb = {}
-    # for (feat, labels) in count.items():
-    #     tProb[feat] = {}
-
-    #     for (label, vals) in labels.items():
-    #         tProb[feat][label] = {}
-    #         total = sum(count[feat][label].values())
-    #         total += 2*bestK
-    #         for (val, c) in vals.items():
-    #             tProb[feat][label][val] = (count[feat][label][val] + bestK) / total
-
-    # self.probs = tProb
-
 
   def classify(self, testData):
     """
@@ -241,7 +222,7 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
             # print('P')
             # print(p)
             logJoint[label] += math.log(p)#final value = log(P(phi_1))+log(P(phi_2))+log(P(phi_3))+log(P(phi_4))+.........+log(P(Face)) when label = face and vice versa
-            #all we have to get the max val b/w logJoin[0], logJoin[1] -> the corresponding label is the prediction.
+            #all we have to get is the max val b/w logJoin[0], logJoin[1] -> the corresponding label is the prediction.
 
     return logJoint
 

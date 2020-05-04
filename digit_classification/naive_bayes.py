@@ -5,6 +5,7 @@ import numpy as np
 import time
 import copy
 import math
+from timeit import default_timer as timer
 np.set_printoptions(threshold=sys.maxsize)
 
 def calc_accuracy(feature_matrix, prior_prob, images, labels, num_classes):
@@ -53,7 +54,7 @@ def fill_feature_matrix(images, labels, num_classes, gt_count):
 					dictionary[labels[index]][1][row][col] += summation_term
 	return dictionary
 
-def core_naive_bayes(training_images, training_labels, validation_images, validation_labels, num_classes):
+def core_naive_bayes(training_images, training_labels, num_classes):
 	gt_count = []
 	prior_prob = []
 	for index in range(0, num_classes):
@@ -82,19 +83,33 @@ def main():
 	resize_width = int(args.image_resize_width)
 	resize_height = int(args.image_resize_height)
 
-	training_labels, indices = util.readLabels(args.training_label_path, training_data_percentage)
-	training_images = util.readImages(args.training_data_path, len(training_labels), resize_width, resize_height, indices)
-	num_classes = len(set(training_labels))
+	# training_data_percentage = 10
+	while(training_data_percentage <= 100):
+		print("Training Percentage", training_data_percentage)
+		if(training_data_percentage == 100):
+			end_itr = 1
+		else:
+			end_itr = 10
+		for iteration in range(0,end_itr):
+			training_labels, indices = util.readLabels(args.training_label_path, training_data_percentage)
+			training_images = util.readImages(args.training_data_path, len(training_labels), resize_width, resize_height, indices)
+			num_classes = len(set(training_labels))
 
-	validation_labels, indices = util.readLabels(args.validation_label_path, 100)
-	validation_images = util.readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height, indices)
+			validation_labels, indices = util.readLabels(args.validation_label_path, 100)
+			validation_images = util.readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height, indices)
 
-	testing_labels, indices = util.readLabels(args.test_label_path, 100)
-	testing_images = util.readImages(args.test_data_path, len(testing_labels), resize_width, resize_height, indices)
-
-	feature_matrix, prior_prob = core_naive_bayes(training_images, training_labels, validation_images, validation_labels, num_classes)
-	test_accuracy = calc_accuracy(feature_matrix, prior_prob, testing_images, testing_labels, num_classes)
-	print("Accuracy on Digit Classification Test-Set is %f" %(test_accuracy))
-
+			testing_labels, indices = util.readLabels(args.test_label_path, 100)
+			testing_images = util.readImages(args.test_data_path, len(testing_labels), resize_width, resize_height, indices)
+			start = timer()
+			feature_matrix, prior_prob = core_naive_bayes(training_images, training_labels, num_classes)
+			end = timer()
+			print(end - start)
+			start = timer()
+			test_accuracy = calc_accuracy(feature_matrix, prior_prob, testing_images, testing_labels, num_classes)
+			end = timer()
+			print(end - start)
+			print(test_accuracy)
+		training_data_percentage += 10
+		# exit(1)
 if __name__ == '__main__':
 	main()

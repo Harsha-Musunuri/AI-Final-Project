@@ -2,7 +2,9 @@ import numpy as np
 from PIL import Image
 import sys
 import argparse
-from collections import Counter 
+from collections import Counter
+from random import shuffle
+from timeit import default_timer as timer
 np.set_printoptions(threshold=sys.maxsize)
 
 def resize_image(curr_image, resize_width, resize_height):
@@ -17,12 +19,11 @@ def readImages(filename, number_of_data_points, resize_width, resize_height, ind
 	line_num = 0
 	image_array = []
 	single_image_array = []
-	image_num = 0
 	indices_length = len(indices)
 
 	while line:
 		line = line.replace(" ","0").replace("#","1").replace("+","1").strip()
-		line = list(map(int, line)) 
+		line = list(map(int, line))
 
 		if(1 in line):
 			single_image_array.append(line)
@@ -31,56 +32,58 @@ def readImages(filename, number_of_data_points, resize_width, resize_height, ind
 
 		line_num += 1
 		if(line_num % 70 == 0):
-			if((indices_length > 0 and image_num in indices) or indices_length == 0):
-				arr = np.array(single_image_array)
-				resized_img = resize_image(arr, resize_width, resize_height)
-				image_array.append(resized_img)
-			image_num += 1
+			arr = np.array(single_image_array)
+			resized_img = resize_image(arr, resize_width, resize_height)
+			image_array.append(resized_img)
 			single_image_array = []
 		line = data_file.readline()
 
 	data_file.close()
-	return image_array
+
+	if len(indices) > 0:
+		shuffled_image_array = []
+		for value in indices:
+			shuffled_image_array.append(image_array[value])
+		return shuffled_image_array
+	else:
+		return image_array
 
 def readLabels(filename, percentage):
 	label_file = open(filename, "r")
 	line = label_file.readline()
 	labels = []
+
+	shuffle_labels = [[]*2 for _ in range(0,2)]
+	prior_count = [0]*2
+
+	label_index = 0
 	while line:
 		label = int(line.strip())
+		if(percentage != 100):
+			shuffle_labels[label].append(label_index)
+			prior_count[label] += 1
+		label_index += 1
 		labels.append(label)
 		line = label_file.readline()
 	label_file.close()
 
 	indices = []
 	if(percentage != 100):
-		prior_count = [0]*len(list(set(labels)))
-		for index in range(0,len(labels)):
-			prior_count[labels[index]] += 1
-
-		running_count = [0]*len(list(set(labels)))
-
-		label_file = open(filename, "r")
-		line = label_file.readline()
 		trim_labels = []
-		line_num = 0
-		while line:
-			label = int(line.strip())
-			if(running_count[label] <= (prior_count[label]*percentage/float(100))):
-				running_count[label] += 1
-				trim_labels.append(label)
-				indices.append(line_num)
-			line_num += 1
-			line = label_file.readline()
-		label_file.close()
+		for index in range(0,2):
+			shuffle(shuffle_labels[index])
+			shuffle_labels[index] = shuffle_labels[index][:int(len(shuffle_labels[index])*percentage/float(100))]
+		for index in range(0,2):
+			for label_index in shuffle_labels[index]:
+				indices.append(label_index)
+				trim_labels.append(labels[label_index])
 		return trim_labels, indices
-
 	return labels, indices
 
-def most_frequent(list): 
-	occurence_count = Counter(list) 
-	return occurence_count.most_common(1)[0][0] 
-	
+def most_frequent(list):
+	occurence_count = Counter(list)
+	return occurence_count.most_common(1)[0][0]
+
 def top_euclidean_distance(training_images, training_labels, test_sample, num_neighbours):
 	euclidean_dist = {}
 	for index in range(0, len(training_labels)):
@@ -137,26 +140,38 @@ def main():
 	best_val_acc = -1
 	best_k = num_neighbours_start_limit
 
-	training_labels, indices = readLabels(args.training_label_path, training_data_percentage)
-	training_images = readImages(args.training_data_path, len(training_labels), resize_width, resize_height, indices)
-	num_classes = len(set(training_labels))
+	while (training_data_percentage <= 100):
+		print("Training Percentage", training_data_percentage)
+		if(training_data_percentage == 100):
+			end_itr = 1
+		else:
+			end_itr = 10
+		for iteration in range(0,end_itr):
+			# print("Iteration ", iteration+1)
+			training_labels, indices = readLabels(args.training_label_path, training_data_percentage)
+			training_images = readImages(args.training_data_path, len(training_labels), resize_width, resize_height, indices)
+			num_classes = len(set(training_labels))
 
-	validation_labels, indices = readLabels(args.validation_label_path, 100)
-	validation_images = readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height, indices)
+			validation_labels, indices = readLabels(args.validation_label_path, 100)
+			validation_images = readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height, indices)
 
-	testing_labels, indices = readLabels(args.test_label_path, 100)
-	testing_images = readImages(args.test_data_path, len(testing_labels), resize_width, resize_height, indices)
+			testing_labels, indices = readLabels(args.test_label_path, 100)
+			testing_images = readImages(args.test_data_path, len(testing_labels), resize_width, resize_height, indices)
 
-	for num_neighbours in range(num_neighbours_start_limit, num_neighbours_end_limit+1):
-		if(num_neighbours_start_limit != num_neighbours_end_limit):
-			val_accuracy = calc_accuracy(training_images, training_labels, validation_images, validation_labels, num_classes, num_neighbours)
-			if(val_accuracy > best_val_acc):
-				best_val_acc = val_accuracy
-				best_k = num_neighbours
-			print("Accuracy on Digit Classification Val-Set is %f with k val of %d" %(val_accuracy, num_neighbours))
-
-	test_accuracy = calc_accuracy(training_images, training_labels, testing_images, testing_labels, num_classes, best_k)
-	print("Accuracy on Digit Classification Test-Set is %f with k val of %d" %(test_accuracy, best_k))
+			for num_neighbours in range(num_neighbours_start_limit, num_neighbours_end_limit+1):
+				if(num_neighbours_start_limit != num_neighbours_end_limit):
+					val_accuracy = calc_accuracy(training_images, training_labels, validation_images, validation_labels, num_classes, num_neighbours)
+					if(val_accuracy > best_val_acc):
+						best_val_acc = val_accuracy
+						best_k = num_neighbours
+					# print("Accuracy on Digit Classification Val-Set is %f with k val of %d" %(val_accuracy, num_neighbours))
+			start = timer()
+			test_accuracy = calc_accuracy(training_images, training_labels, testing_images, testing_labels, num_classes, num_neighbours)
+			end = timer()
+			print(end - start)
+			print("Accuracy on Digit Classification Test-Set is %f with k val of %d" %(test_accuracy, num_neighbours))
+		training_data_percentage += 10
+		exit(1)
 
 if __name__ == '__main__':
 	main()

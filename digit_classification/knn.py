@@ -2,13 +2,14 @@ import util
 import sys
 import argparse
 import numpy as np
-from collections import Counter 
+from collections import Counter
+from timeit import default_timer as timer
 np.set_printoptions(threshold=sys.maxsize)
 
-def most_frequent(list): 
-	occurence_count = Counter(list) 
-	return occurence_count.most_common(1)[0][0] 
-	
+def most_frequent(list):
+	occurence_count = Counter(list)
+	return occurence_count.most_common(1)[0][0]
+
 def top_euclidean_distance(training_images, training_labels, test_sample, num_neighbours):
 	euclidean_dist = {}
 	for index in range(0, len(training_labels)):
@@ -65,26 +66,38 @@ def main():
 	best_val_acc = -1
 	best_k = num_neighbours_start_limit
 
-	training_labels, indices = util.readLabels(args.training_label_path, training_data_percentage)
-	training_images = util.readImages(args.training_data_path, len(training_labels), resize_width, resize_height, indices)
-	num_classes = len(set(training_labels))
+	while (training_data_percentage <= 100):
+		print("Training Percentage", training_data_percentage)
+		if(training_data_percentage == 100):
+			end_itr = 1
+		else:
+			end_itr = 10
+		for iteration in range(0,end_itr):
+			# print("Iteration ", iteration+1)
+			training_labels, indices = util.readLabels(args.training_label_path, training_data_percentage)
+			training_images = util.readImages(args.training_data_path, len(training_labels), resize_width, resize_height, indices)
+			num_classes = len(set(training_labels))
 
-	validation_labels, indices = util.readLabels(args.validation_label_path, 100)
-	validation_images = util.readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height, indices)
+			validation_labels, indices = util.readLabels(args.validation_label_path, 100)
+			validation_images = util.readImages(args.validation_data_path, len(validation_labels), resize_width, resize_height, indices)
 
-	testing_labels, indices = util.readLabels(args.test_label_path, 100)
-	testing_images = util.readImages(args.test_data_path, len(testing_labels), resize_width, resize_height, indices)
+			testing_labels, indices = util.readLabels(args.test_label_path, 100)
+			testing_images = util.readImages(args.test_data_path, len(testing_labels), resize_width, resize_height, indices)
 
-	for num_neighbours in range(num_neighbours_start_limit, num_neighbours_end_limit+1):
-		if(num_neighbours_start_limit != num_neighbours_end_limit):
-			val_accuracy = calc_accuracy(training_images, training_labels, validation_images, validation_labels, num_classes, num_neighbours)
-			if(val_accuracy > best_val_acc):
-				best_val_acc = val_accuracy
-				best_k = num_neighbours
-			print("Accuracy on Digit Classification Val-Set is %f with k val of %d" %(val_accuracy, num_neighbours))
-
-	test_accuracy = calc_accuracy(training_images, training_labels, testing_images, testing_labels, num_classes, best_k)
-	print("Accuracy on Digit Classification Test-Set is %f with k val of %d" %(test_accuracy, best_k))
+			for num_neighbours in range(num_neighbours_start_limit, num_neighbours_end_limit+1):
+				if(num_neighbours_start_limit != num_neighbours_end_limit):
+					val_accuracy = calc_accuracy(training_images, training_labels, validation_images, validation_labels, num_classes, num_neighbours)
+					if(val_accuracy > best_val_acc):
+						best_val_acc = val_accuracy
+						best_k = num_neighbours
+					# print("Accuracy on Digit Classification Val-Set is %f with k val of %d" %(val_accuracy, num_neighbours))
+			start = timer()
+			test_accuracy = calc_accuracy(training_images, training_labels, testing_images, testing_labels, num_classes, best_k)
+			end = timer()
+			print(end - start)
+			print("Accuracy on Digit Classification Test-Set is %f with k val of %d" %(test_accuracy, num_neighbours))
+		training_data_percentage += 10
+		# exit(1)
 
 if __name__ == '__main__':
 	main()
